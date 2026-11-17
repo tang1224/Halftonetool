@@ -174,10 +174,44 @@ $('file').addEventListener('change',e=>{
 });
 controls.forEach(id=>$(id).addEventListener('input',draw));
 $('reset').addEventListener('click',()=>{for(const [id,val] of Object.entries(defaults)){if(id==='invert')$(id).checked=val;else $(id).value=val;}draw()});
-$('download').addEventListener('click',()=>{
- if(!source)return;
- const a=document.createElement('a');a.download='halftone-'+Date.now()+'.png';a.href=canvas.toDataURL('image/png');a.click();
+
+$('download').addEventListener('click', async () => {
+  if (!source) return;
+
+  const blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, 'image/png')
+  );
+
+  if (!blob) return;
+
+  const file = new File(
+    [blob],
+    'halftone-' + Date.now() + '.png',
+    { type: 'image/png' }
+  );
+
+  // iPhone Safari：呼叫系統分享選單
+  if (
+    navigator.share &&
+    navigator.canShare &&
+    navigator.canShare({ files: [file] })
+  ) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'Halftone Image'
+      });
+      return;
+    } catch (error) {
+      if (error.name === 'AbortError') return;
+    }
+  }
+
+  // 備援：開啟圖片供長按儲存
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 });
+
 </script>
 </body>
 </html>
